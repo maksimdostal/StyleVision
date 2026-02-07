@@ -12,6 +12,7 @@ interface LoginScreenProps {
 const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin, isOverlay = false, onCancel }) => {
   const [mockName, setMockName] = useState('');
   const telegramWrapperRef = useRef<HTMLDivElement>(null);
+  const useTestLogin = true;
   
   // Checkbox states
   const [termsAccepted, setTermsAccepted] = useState(false);
@@ -19,6 +20,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin, isOverlay = false, o
   const [showAgreementError, setShowAgreementError] = useState(false);
 
   useEffect(() => {
+    if (useTestLogin) return;
     // Clean container first
     if (telegramWrapperRef.current) {
         telegramWrapperRef.current.innerHTML = '';
@@ -61,7 +63,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin, isOverlay = false, o
     return () => {
         // Optional cleanup
     };
-  }, [onLogin]);
+  }, [onLogin, useTestLogin]);
 
   useEffect(() => {
     if (termsAccepted && privacyAccepted) {
@@ -104,6 +106,25 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin, isOverlay = false, o
       termsAcceptedAt: new Date().toISOString()
     };
     onLogin(guestUser);
+  };
+
+  const handleTestLogin = () => {
+    if (!termsAccepted || !privacyAccepted) {
+        setShowAgreementError(true);
+        triggerHaptic('error');
+        return;
+    }
+
+    triggerHaptic('success');
+    onLogin({
+      id: Date.now(),
+      first_name: "Test User",
+      last_name: "",
+      username: "test_user",
+      photo_url: "",
+      isGuest: false,
+      termsAcceptedAt: new Date().toISOString()
+    });
   };
 
   const areCheckboxesChecked = termsAccepted && privacyAccepted;
@@ -179,7 +200,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin, isOverlay = false, o
             )}
 
             <h2 className="text-xl font-serif text-white mb-2 text-center">
-                {isOverlay ? 'Требуется авторизация' : 'Вход через Telegram'}
+                {isOverlay ? 'Требуется авторизация' : useTestLogin ? 'Тестовый вход' : 'Вход через Telegram'}
             </h2>
             
             <div className={`space-y-6 mt-6`}>
@@ -191,11 +212,27 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin, isOverlay = false, o
                    )}
                    
                    <div className="flex flex-col items-center justify-center min-h-[50px] bg-white/5 rounded-lg p-4 relative transition-colors">
-                      <div ref={telegramWrapperRef} className="flex justify-center w-full min-h-[40px] z-10 relative"></div>
+                      {useTestLogin ? (
+                        <button 
+                          type="button"
+                          onClick={handleTestLogin}
+                          className="w-full bg-gradient-to-r from-amber-500 to-amber-400 text-black font-bold py-3 rounded-lg hover:brightness-110 transition-all uppercase tracking-wider text-xs"
+                        >
+                          Войти в тестовом режиме
+                        </button>
+                      ) : (
+                        <div ref={telegramWrapperRef} className="flex justify-center w-full min-h-[40px] z-10 relative"></div>
+                      )}
+                      {useTestLogin && (
+                        <p className="text-[10px] text-neutral-500 mt-3 text-center">
+                          Используется для предпросмотра в виртуальной среде.
+                        </p>
+                      )}
                    </div>
                </div>
 
                {/* Trouble Logging In? (Fallback) */}
+               {!useTestLogin && (
                <div className="text-center pt-1">
                    <p className="text-[10px] text-neutral-500 mb-2 leading-relaxed">
                        Не удается войти? Если виджет не работает,<br/>перейдите напрямую в нашего бота:
@@ -210,6 +247,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin, isOverlay = false, o
                       Перейти в @stylevision_bot
                    </a>
                </div>
+               )}
 
                {/* Legal Checkboxes */}
                <div className={`space-y-3 p-4 rounded-lg border transition-all ${showAgreementError ? 'bg-red-900/10 border-red-500/50' : 'bg-neutral-900/50 border-neutral-800'}`}>
